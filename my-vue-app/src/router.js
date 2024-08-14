@@ -23,20 +23,23 @@ const routes = [
     component: () => import("./components/Cart.vue"),
     meta: { requiresAuth: true },
   },
+  {
+    path: '/comparison',
+    name: 'Comparison',
+    component: () => import('./views/ComparisonView.vue'),  // Create this component in the next steps
+    meta: { requiresAuth: true },
+  },
 ];
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(import.meta.BASE_URL),
   routes,
 });
 
 router.beforeEach((to, from, next) => {
-  if (to.matched.some((record) => record.meta.requiresAuth)) {
-    if (!store.getters.isLoggedIn && !store.getters.isAuthenticated) {
-      next({
-        path: "/login",
-        query: { redirect: to.fullPath },
-      });
+  if (to.matched.some(record => record.meta.requiresAuth)) {
+    if (!store.getters.isAuthenticated) {
+      next({ name: 'Login' });  // Redirect to login page if not authenticated
     } else {
       next();
     }
