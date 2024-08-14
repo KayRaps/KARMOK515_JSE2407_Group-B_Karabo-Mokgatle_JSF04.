@@ -55,7 +55,7 @@
             <!-- Cart Link (with badge) -->
             <li class="relative hidden md:block lg:block">
               <div class="absolute left-3 top-0">
-                <p class="flex h-2 w-2 items-center justify-center rounded-full bg-red-500 p-3 text-xs text-white">2</p>
+                <p class="flex h-2 w-2 items-center justify-center rounded-full bg-red-500 p-3 text-xs text-white">{{ cartItemCount }}</p>
               </div>
               <router-link to="/cart" class="text-white hover:bg-gray-700">
                 <svg
@@ -78,21 +78,31 @@
             <!-- Mobile Cart Link -->
             <li class="lg:hidden md:hidden">
               <router-link
+                v-if="isLoggedIn"
                 to="/cart"
                 class="block py-2 px-3 text-white rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700"
               >
-                Cart
+                Cart ({{ cartItemCount }})
               </router-link>
             </li>
 
-            <!-- Login Link -->
+            <!-- Login/Logout Link -->
             <li>
               <router-link
+                v-if="!isLoggedIn"
                 to="/login"
                 class="block py-2 px-3 text-white rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700"
               >
                 Login
               </router-link>
+              <a
+                v-else
+                href="#"
+                @click.prevent="logout"
+                class="block py-2 px-3 text-white rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700"
+              >
+                Logout
+              </a>
             </li>
           </ul>
         </div>
@@ -102,20 +112,34 @@
 </template>
 
 <script>
-import { ref } from "vue";
+import { ref, computed } from "vue";
+import { useStore } from "vuex";
+import { useRouter } from "vue-router";
 
 export default {
   name: "Header",
+  props: ["cartItemCount"],
   setup() {
+    const store = useStore();
+    const router = useRouter();
     const showNavbar = ref(false);
 
     const toggleNavbar = () => {
       showNavbar.value = !showNavbar.value;
     };
 
+    const isLoggedIn = computed(() => store.getters.isLoggedIn);
+
+    const logout = () => {
+      store.dispatch("logout");
+      router.push("/login");
+    };
+
     return {
       showNavbar,
       toggleNavbar,
+      isLoggedIn,
+      logout,
     };
   },
 };
