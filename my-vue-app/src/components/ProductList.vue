@@ -1,53 +1,77 @@
 <template>
-  <div>
-    <div class="container mx-auto p-4">
-      <!-- Header -->
-      <h1 class="text-2xl font-bold mb-4 text-center">Welcome to Ecommerce-store</h1>
+  <div class="container mx-auto p-4">
+    <!-- Header -->
+    <h1 class="text-2xl font-bold mb-4 text-center">
+      Welcome to Ecommerce-store
+    </h1>
 
-      <!-- Filters Section -->
-      <div class="filters">
-        <Filter
-          :categories="categories"
-          :initialCategory="selectedCategory"
-          @update:category="handleCategoryChange"
-        />
-        <Sort :initialSort="sortOrder" @update:sort="handleSortChange" />
-      </div>
+    <!-- Filters Section -->
+    <div class="filters mb-4">
+      <Filter
+        :categories="categories"
+        :initialCategory="selectedCategory"
+        @update:category="handleCategoryChange"
+      />
+      <Sort :initialSort="sortOrder" @update:sort="handleSortChange" />
+    </div>
 
-      <!-- Loading State -->
-      <div v-if="loading">
-        <ProductSkeleton v-for="n in 3" :key="n" />
-      </div>
+    <!-- Loading State -->
+    <div v-if="loading">
+      <ProductSkeleton v-for="n in 3" :key="n" />
+    </div>
 
-      <!-- Product List -->
-      <div v-else class="product-list">
-        <div
-          v-for="product in filteredProducts"
-          :key="product.id"
-          class="product-card"
+    <!-- Product List -->
+    <div
+      v-else
+      class="product-list grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+    >
+      <div
+        v-for="product in filteredProducts"
+        :key="product.id"
+        class="product-card card-modern"
+      >
+        <router-link
+          :to="{ path: `/product/${product.id}`, query: $route.query }"
         >
-          <router-link
-            :to="{ path: `/product/${product.id}`, query: $route.query }"
-          >
-            <img
-              :src="product.image"
-              :alt="product.title"
-              class="product-image"
-            />
-            <h3 class="title">{{ product.title }}</h3>
-            <p class="price">${{ product.price }}</p>
+          <img
+            :src="product.image"
+            :alt="product.title"
+            class="product-image w-full h-48 object-cover rounded-t-lg"
+          />
+          <div class="p-4">
+            <h3 class="title text-lg font-semibold">{{ product.title }}</h3>
+            <p class="price text-gray-600">${{ product.price }}</p>
             <p>{{ product.category }}</p>
             <p>Ratings: {{ product.rating.rate }}</p>
             <p>Reviews: {{ product.rating.count }}</p>
-          </router-link>
-          <div class="button-group">
-            <button v-if="isLoggedIn" @click="addToCart(product)" class="add-to-cart-btn">
-              Add to Cart
-            </button>
-            <button v-if="isLoggedIn" @click="addToWishlist(product)" class="add-to-wishlist-btn">
-              Add to Wishlist
-            </button>
           </div>
+        </router-link>
+        <div class="button-group mt-4 flex justify-between items-center">
+          <button
+            v-if="isLoggedIn"
+            @click="addToCart(product)"
+            class="add-to-cart-btn bg-blue-500 text-white py-2 px-4 rounded-full hover:bg-blue-600 transition-colors duration-300"
+          >
+            Add to Cart
+          </button>
+          <button
+            v-if="isLoggedIn"
+            @click="addToWishlist(product)"
+            class="add-to-wishlist-btn bg-red-500 text-white py-2 px-4 rounded-full hover:bg-red-600 transition-colors duration-300"
+          >
+            Add to Wishlist
+          </button>
+          <button
+            v-if="isLoggedIn"
+            @click="toggleComparison(product)"
+            class="bg-green-500 text-white py-2 px-4 rounded-full hover:bg-green-600 transition-colors duration-300"
+          >
+            {{
+              isInComparisonList(product)
+                ? "Remove from Comparison"
+                : "Add to Comparison"
+            }}
+          </button>
         </div>
       </div>
     </div>
@@ -57,7 +81,7 @@
 <script>
 import { ref, onMounted, watch, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { useStore } from 'vuex';
+import { useStore } from "vuex";
 import ProductSkeleton from "./ProductSkeleton.vue";
 import Filter from "./Filter.vue";
 import Sort from "./Sort.vue";
@@ -75,6 +99,9 @@ export default {
     const route = useRoute();
     const router = useRouter();
 
+    const comparisonList = computed(() => store.getters.comparisonList);
+
+
     const loading = ref(true);
     const products = ref([]);
     const categories = ref([]);
@@ -89,14 +116,26 @@ export default {
       );
     });
 
-    const isLoggedIn = computed(() => store.getters.isLoggedIn);
+    const isLoggedIn = computed(() => store.getters.isAuthenticated);
 
     const addToCart = (product) => {
-      store.dispatch('addToCart', product);
+      store.dispatch("addToCart", product);
     };
 
     const addToWishlist = (product) => {
-      store.dispatch('addToWishlist', product);
+      store.dispatch("addToWishlist", product);
+    };
+
+    const toggleComparison = (product) => {
+      if (isInComparisonList(product)) {
+        store.dispatch("removeFromComparison", product.id);
+      } else {
+        store.dispatch("addToComparison", product);
+      }
+    };
+
+    const isInComparisonList = (product) => {
+      return comparisonList.some(item => item.id === product.id);
     };
 
     const fetchProducts = async () => {
@@ -160,6 +199,9 @@ export default {
       isLoggedIn,
       addToCart,
       addToWishlist,
+      toggleComparison,
+      comparisonList,
+      isInComparisonList,
       fetchProducts,
       fetchCategoriesData,
       handleCategoryChange,
@@ -169,7 +211,7 @@ export default {
 };
 </script>
 
-<style>
+<style scoped>
 .container {
   max-width: 1200px;
 }
@@ -177,7 +219,6 @@ export default {
 .filters {
   display: flex;
   gap: 1rem;
-  margin-bottom: 1rem;
 }
 
 .product-list {
@@ -187,7 +228,7 @@ export default {
 }
 
 .product-card {
-  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   padding: 1rem;
   border-radius: 20px;
   background-color: rgb(169, 211, 230);
@@ -200,13 +241,12 @@ export default {
 
 .product-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
 .product-image {
   width: 100%;
   height: auto;
-  margin-top: auto;
 }
 
 .title {
@@ -219,27 +259,9 @@ export default {
   font-weight: bold;
 }
 
-ul {
-  list-style-type: none;
-  padding: 0;
-}
-
-li {
-  margin-bottom: 1em;
-}
-
 .button-group {
   display: flex;
   gap: 10px;
-  margin-top: 10px;
-}
-
-.add-to-cart-btn, .add-to-wishlist-btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
 }
 
 .add-to-cart-btn {
@@ -258,5 +280,46 @@ li {
 
 .add-to-wishlist-btn:hover {
   background-color: #d32f2f;
+}
+
+.card-modern {
+  background-color: #ffffff; /* White background for the card */
+  border-radius: 12px; /* Rounded corners */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow effect */
+  overflow: hidden; /* Ensure content does not overflow */
+  transition: transform 0.3s, box-shadow 0.3s; /* Smooth transition for hover effects */
+}
+
+.card-modern:hover {
+  transform: translateY(-10px); /* Lift the card on hover */
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
+}
+
+.card-modern img {
+  width: 100%; /* Ensure image fills the card width */
+  height: auto; /* Maintain aspect ratio */
+  border-bottom: 2px solid #eeeeee; /* Light border below image */
+}
+
+.card-modern .content {
+  padding: 16px; /* Padding inside the card */
+}
+
+.card-modern .title {
+  font-size: 1.25rem; /* Slightly larger font size for the title */
+  font-weight: bold; /* Bold title */
+  margin-bottom: 8px; /* Space below the title */
+  color: #333333; /* Dark text color for better readability */
+}
+
+.card-modern .description {
+  font-size: 1rem; /* Font size for description */
+  color: #666666; /* Lighter text color */
+  margin-bottom: 16px; /* Space below description */
+}
+
+.card-modern .button-group {
+  display: flex; /* Flexbox for button alignment */
+  gap: 8px; /* Space between buttons */
 }
 </style>
