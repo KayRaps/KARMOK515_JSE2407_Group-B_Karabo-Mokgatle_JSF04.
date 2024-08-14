@@ -1,9 +1,10 @@
 import { createStore } from "vuex";
-import { jwtDecode } from "jwt-decode"; // Corrected the import for jwtDecode
+import { jwtDecode } from "jwt-decode"; // Corrected import
 
-export default createStore({
+const store = createStore({
   state() {
     return {
+      comparisonList: [], // Initialize as an empty array
       user: JSON.parse(localStorage.getItem("user")) || null,
       token: localStorage.getItem("token") || null,
       cart: {
@@ -12,9 +13,10 @@ export default createStore({
       wishlist: JSON.parse(localStorage.getItem("wishlist")) || [],
       selectedCategory: "",
       sortOrder: "",
-      comparisonList: [],
+      comparisonList: JSON.parse(localStorage.getItem("comparisonList")) || [],
     };
   },
+
   mutations: {
     setUser(state, user) {
       state.user = user;
@@ -23,7 +25,7 @@ export default createStore({
       state.token = token;
     },
     setCart(state, cart) {
-      state.cart = cart;
+      state.cart = { items: cart.items || [] };
     },
     setWishlist(state, wishlist) {
       state.wishlist = wishlist;
@@ -33,9 +35,6 @@ export default createStore({
     },
     setSortOrder(state, sortOrder) {
       state.sortOrder = sortOrder;
-    },
-    setCart(state, cart) {
-      state.cart = { items: cart.items || [] };
     },
     addToCart(state, product) {
       if (!state.cart.items) state.cart.items = [];
@@ -49,7 +48,6 @@ export default createStore({
       }
       localStorage.setItem("cart", JSON.stringify(state.cart));
     },
-
     updateCartItemQuantity(state, { productId, quantity }) {
       if (!state.cart.items) state.cart.items = [];
       const item = state.cart.items.find((item) => item.id === productId);
@@ -58,7 +56,6 @@ export default createStore({
         localStorage.setItem("cart", JSON.stringify(state.cart));
       }
     },
-
     removeFromCart(state, productId) {
       if (!state.cart.items) state.cart.items = [];
       state.cart.items = state.cart.items.filter(
@@ -66,7 +63,6 @@ export default createStore({
       );
       localStorage.setItem("cart", JSON.stringify(state.cart));
     },
-
     clearCart(state) {
       state.cart.items = [];
       localStorage.setItem("cart", JSON.stringify(state.cart));
@@ -81,8 +77,43 @@ export default createStore({
       state.wishlist = state.wishlist.filter((item) => item.id !== productId);
       localStorage.setItem("wishlist", JSON.stringify(state.wishlist));
     },
+    addToComparison(state, product) {
+      if (
+        state.comparisonList.length < 3 &&
+        !state.comparisonList.some((item) => item.id === product.id)
+      ) {
+        state.comparisonList.push(product);
+        localStorage.setItem(
+          "comparisonList",
+          JSON.stringify(state.comparisonList)
+        );
+      }
+    },
+    removeFromComparison(state, productId) {
+      state.comparisonList = state.comparisonList.filter(
+        (item) => item.id !== productId
+      );
+      localStorage.setItem(
+        "comparisonList",
+        JSON.stringify(state.comparisonList)
+      );
+    },
+    clearComparisonList(state) {
+      state.comparisonList = [];
+      localStorage.setItem(
+        "comparisonList",
+        JSON.stringify(state.comparisonList)
+      );
+    },
   },
+
   actions: {
+    addToComparison({ commit }, product) {
+      commit("addToComparisonList", product);
+    },
+    removeFromComparison({ commit }, productId) {
+      commit("removeFromComparisonList", productId);
+    },
     async login({ commit, dispatch }, credentials) {
       const response = await fetch("https://fakestoreapi.com/auth/login", {
         method: "POST",
@@ -173,7 +204,15 @@ export default createStore({
       commit("removeFromWishlist", productId);
     },
   },
+
   getters: {
+    comparisonList(state) {
+      return state.comparisonList; // Return the comparisonList from the state
+    },
+    isAuthenticated(state) {
+      return !!state.user; // Example: return true if a user is present
+    },
+    comparisonList: [], // Initialize as an empty array
     isAuthenticated: (state) => !!state.token,
     isLoggedIn: (state) => !!state.user,
     cartItemCount: (state) => {
@@ -195,3 +234,5 @@ export default createStore({
     wishlistItemCount: (state) => state.wishlist.length,
   },
 });
+
+export default store;
