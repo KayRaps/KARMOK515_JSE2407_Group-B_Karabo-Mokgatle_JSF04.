@@ -12,6 +12,7 @@ export default createStore({
       wishlist: JSON.parse(localStorage.getItem("wishlist")) || [],
       selectedCategory: "",
       sortOrder: "",
+      comparisonList: [],
     };
   },
   mutations: {
