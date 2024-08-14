@@ -40,6 +40,14 @@
             <p>Ratings: {{ product.rating.rate }}</p>
             <p>Reviews: {{ product.rating.count }}</p>
           </router-link>
+          <div class="button-group">
+            <button v-if="isLoggedIn" @click="addToCart(product)" class="add-to-cart-btn">
+              Add to Cart
+            </button>
+            <button v-if="isLoggedIn" @click="addToWishlist(product)" class="add-to-wishlist-btn">
+              Add to Wishlist
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -49,8 +57,9 @@
 <script>
 import { ref, onMounted, watch, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useStore } from 'vuex';
 import ProductSkeleton from "./ProductSkeleton.vue";
-import Filter from "./FIlter.vue";
+import Filter from "./Filter.vue";
 import Sort from "./Sort.vue";
 import { filterProducts, fetchCategories } from "../productUtils";
 
@@ -62,6 +71,7 @@ export default {
     Sort,
   },
   setup() {
+    const store = useStore();
     const route = useRoute();
     const router = useRouter();
 
@@ -78,6 +88,16 @@ export default {
         sortOrder.value
       );
     });
+
+    const isLoggedIn = computed(() => store.getters.isLoggedIn);
+
+    const addToCart = (product) => {
+      store.dispatch('addToCart', product);
+    };
+
+    const addToWishlist = (product) => {
+      store.dispatch('addToWishlist', product);
+    };
 
     const fetchProducts = async () => {
       try {
@@ -137,6 +157,9 @@ export default {
       selectedCategory,
       sortOrder,
       filteredProducts,
+      isLoggedIn,
+      addToCart,
+      addToWishlist,
       fetchProducts,
       fetchCategoriesData,
       handleCategoryChange,
@@ -203,5 +226,37 @@ ul {
 
 li {
   margin-bottom: 1em;
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.add-to-cart-btn, .add-to-wishlist-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.add-to-cart-btn {
+  background-color: #4caf50;
+  color: white;
+}
+
+.add-to-cart-btn:hover {
+  background-color: #45a049;
+}
+
+.add-to-wishlist-btn {
+  background-color: #f44336;
+  color: white;
+}
+
+.add-to-wishlist-btn:hover {
+  background-color: #d32f2f;
 }
 </style>
