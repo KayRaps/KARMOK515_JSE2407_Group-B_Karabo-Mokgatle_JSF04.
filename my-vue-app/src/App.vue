@@ -1,6 +1,5 @@
 <template>
   <div id="app" :class="{ 'dark-theme': isDarkTheme }" :data-theme="theme">
-    
     <Header :cartItemCount="cartItemCount" :comparisonCount="comparisonCount">
       <ThemeToggle />
     </Header>
@@ -16,38 +15,45 @@
   </div>
 </template>
 
-<script >
-
-import { mapGetters } from 'vuex';
-import { ref, onMounted, computed } from 'vue';
-import { useStore } from 'vuex'; // This import is correct
+<script>
+import { defineComponent, ref, onMounted, computed } from 'vue';
+import { useStore } from 'vuex';
 import Header from './components/Header.vue';
 import ThemeToggle from './components/ThemeToggle.vue';
 
-const store = useStore()
-const products = ref([]);
-const cartItemCount = computed(() => store.getters.cartItemCount || 0);
-const comparisonCount = computed(() => store.getters.comparisonList.length);
-const theme = computed(() => store.getters.currentTheme);
-const isDarkTheme = computed(() => store.state.theme === 'dark');
+export default defineComponent({
+  name: 'App',
+  components: {
+    Header,
+    ThemeToggle
+  },
+  setup() {
+    const store = useStore();
+    const products = ref([]);
+    const cartItemCount = computed(() => store.getters.cartItemCount || 0);
+    const comparisonCount = computed(() => store.getters.comparisonList.length);
+    const theme = computed(() => store.getters.currentTheme);
+    const isDarkTheme = computed(() => store.state.theme === 'dark');
 
-export default {
-  computed: {
-    ...mapGetters(['currentTheme'])
+    onMounted(async () => {
+      try {
+        const res = await fetch("https://fakestoreapi.com/products");
+        products.value = await res.json();
+        await store.dispatch('checkAuth');
+        store.dispatch('initializeApp');
+      } catch (error) {
+        console.error("Failed to initialize app:", error);
+      }
+    });
+
+    return {
+      products,
+      cartItemCount,
+      comparisonCount,
+      theme,
+      isDarkTheme
+    };
   }
-}
-
-onMounted(async () => {
-  try {
-    const res = await fetch("https://fakestoreapi.com/products");
-    products.value = await res.json();
-    await store.dispatch('checkAuth');
-    store.dispatch('initializeApp');
-  } catch (error) {
-    console.error("Failed to initialize app:", error);
-  }
-
-
 });
 </script>
 
@@ -75,7 +81,8 @@ body {
   --bg-color: #333333;
   --text-color: #ffffff;
   --primary-color: #61dafb;
-  --secondary-color: #ffc600;}
+  --secondary-color: #ffc600;
+}
 
-/* Your existing styles here */
+/* Add any additional styles here */
 </style>
