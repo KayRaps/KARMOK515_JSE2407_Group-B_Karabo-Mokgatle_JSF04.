@@ -1,48 +1,72 @@
 // router.js
 import { createRouter, createWebHistory } from 'vue-router';
+import store from './store';
+
+// Import components
+import Home from './views/Home.vue';
 import ProductList from './components/ProductList.vue';
 import ProductDetails from './components/ProductDetails.vue';
 import Cart from './components/Cart.vue';
 import Wishlist from './components/Wishlist.vue';
 import Login from './components/Login.vue';
-import store from './store';
+import ComparisonList from './components/ComparisonList.vue';
 
 const routes = [
-  { path: "/", component: ProductList },
-  { path: "/product/:id", component: ProductDetails },
-  { path: '/cart', component: Cart, meta: { requiresAuth: true } },
-  { path: '/wishlist', component: Wishlist, meta: { requiresAuth: true } },
-  { path: "/login", component: Login },
-  {
-    path: "/wishlist",
-    component: () => import("./components/Wishlist.vue"),
-    meta: { requiresAuth: true },
+  { 
+    path: "/", 
+    name: 'Home',
+    component: Home 
   },
-  {
-    path: "/cart",
-    component: () => import("./components/Cart.vue"),
-    meta: { requiresAuth: true },
+  { 
+    path: "/products", 
+    name: 'ProductList',
+    component: ProductList 
+  },
+  { 
+    path: "/product/:id", 
+    name: 'ProductDetails',
+    component: ProductDetails 
+  },
+  { 
+    path: '/cart', 
+    name: 'Cart',
+    component: Cart, 
+    meta: { requiresAuth: true } 
+  },
+  { 
+    path: '/wishlist', 
+    name: 'Wishlist',
+    component: Wishlist, 
+    meta: { requiresAuth: true } 
+  },
+  { 
+    path: "/login", 
+    name: 'Login',
+    component: Login 
+  },
+  { 
+    path: '/compare', 
+    name: 'Compare',
+    component: ComparisonList 
   },
   {
     path: '/comparison',
     name: 'Comparison',
-    component: () => import('./views/ComparisonView.vue'),  // Create this component in the next steps
+    component: () => import('./views/ComparisonView.vue'),
     meta: { requiresAuth: true },
   },
 ];
 
 const router = createRouter({
-  history: createWebHistory(import.meta.BASE_URL),
+  history: createWebHistory(),
   routes,
 });
 
+// Navigation guard
 router.beforeEach((to, from, next) => {
-  if (to.matched.some(record => record.meta.requiresAuth)) {
-    if (!store.getters.isAuthenticated) {
-      next({ name: 'Login' });  // Redirect to login page if not authenticated
-    } else {
-      next();
-    }
+  const isAuthenticated = store.getters.isAuthenticated;
+  if (to.matched.some(record => record.meta.requiresAuth) && !isAuthenticated) {
+    next('/login');
   } else {
     next();
   }
