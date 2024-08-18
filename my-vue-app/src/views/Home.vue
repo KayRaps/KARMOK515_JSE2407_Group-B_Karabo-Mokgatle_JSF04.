@@ -104,33 +104,41 @@
 </template>
 
 <script>
-import { ref, onMounted } from "vue";
+import { defineComponent, ref, onMounted } from "vue";
 import { useStore } from "vuex";
 
-const store = useStore();
+export default defineComponent({
+  setup() {
+    const store = useStore();
+    const featuredProducts = ref([]);
+    const categories = ref([]);
 
-const featuredProducts = ref([]);
-const categories = ref([]);
+    const fetchFeaturedProducts = async () => {
+      try {
+        const response = await fetch('https://fakestoreapi.com/products?limit=5');
+        if (!response.ok) throw new Error('Failed to fetch featured products');
+        const data = await response.json();
+        featuredProducts.value = Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error('Error fetching featured products:', error);
+        featuredProducts.value = [];
+      }
+    };
 
-const fetchFeaturedProducts = async () => {
-  try {
-    const response = await fetch('https://fakestoreapi.com/products?limit=5');
-    if (!response.ok) throw new Error('Failed to fetch featured products');
-    const data = await response.json();
-    featuredProducts.value = Array.isArray(data) ? data : [];
-  } catch (error) {
-    console.error('Error fetching featured products:', error);
-    featuredProducts.value = [];
+    const fetchCategoriesData = async () => {
+      categories.value = await store.dispatch("fetchCategories");
+    };
+
+    onMounted(async () => {
+      await fetchFeaturedProducts();
+      await fetchCategoriesData();
+    });
+
+    return {
+      featuredProducts,
+      categories
+    };
   }
-};
-
-const fetchCategoriesData = async () => {
-  categories.value = await store.dispatch("fetchCategories");
-};
-
-onMounted(async () => {
-  await fetchFeaturedProducts();
-  await fetchCategoriesData();
 });
 </script>
 
