@@ -1,0 +1,13 @@
+/* assets/global.css */
+.btn {
+    background-color: var(--primary-color);
+    color: var(--bg-color);
+  }
+  
+  .card {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--secondary-color);
+  }
+  
+  /* Add more global styles using CSS variables */

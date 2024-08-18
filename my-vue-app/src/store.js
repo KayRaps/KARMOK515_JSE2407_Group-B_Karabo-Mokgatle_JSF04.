@@ -1,34 +1,41 @@
+import { jwtDecode } from "jwt-decode";
 import { createStore } from "vuex";
-import { jwtDecode } from "jwt-decode"; // Corrected import
+
 
 const store = createStore({
-  state() {
-    return {
-      comparisonList: [], // Initialize as an empty array
-      user: JSON.parse(localStorage.getItem("user")) || null,
-      token: localStorage.getItem("token") || null,
-      cart: {
-        items: JSON.parse(localStorage.getItem("cart")) || [],
-      },
-      wishlist: JSON.parse(localStorage.getItem("wishlist")) || [],
-      selectedCategory: "",
-      sortOrder: "",
-      comparisonList: JSON.parse(localStorage.getItem("comparisonList")) || [],
-    };
+  state: {
+    user: JSON.parse(localStorage.getItem("user")) || null,
+    token: localStorage.getItem("token") || null,
+    cart: {
+      items: JSON.parse(localStorage.getItem("cart")) || [],
+    },
+    wishlist: JSON.parse(localStorage.getItem("wishlist")) || [],
+    selectedCategory: "",
+    sortOrder: "",
+    comparisonList: JSON.parse(localStorage.getItem("comparisonList")) || [],
+    comparisonListLoading: false,
+    theme: localStorage.getItem("theme") || "light",
   },
 
   mutations: {
     setUser(state, user) {
       state.user = user;
+      localStorage.setItem("user", JSON.stringify(user));
     },
     setToken(state, token) {
       state.token = token;
+      localStorage.setItem("token", token);
+    },
+    setProducts(state, products) {
+      state.products = products;
     },
     setCart(state, cart) {
-      state.cart = { items: cart.items || [] };
+      state.cart = { items: Array.isArray(cart.items) ? cart.items : [] };
+      localStorage.setItem("cart", JSON.stringify(state.cart));
     },
     setWishlist(state, wishlist) {
       state.wishlist = wishlist;
+      localStorage.setItem("wishlist", JSON.stringify(wishlist));
     },
     setCategory(state, category) {
       state.selectedCategory = category;
@@ -37,7 +44,6 @@ const store = createStore({
       state.sortOrder = sortOrder;
     },
     addToCart(state, product) {
-      if (!state.cart.items) state.cart.items = [];
       const existingItem = state.cart.items.find(
         (item) => item.id === product.id
       );
@@ -49,7 +55,6 @@ const store = createStore({
       localStorage.setItem("cart", JSON.stringify(state.cart));
     },
     updateCartItemQuantity(state, { productId, quantity }) {
-      if (!state.cart.items) state.cart.items = [];
       const item = state.cart.items.find((item) => item.id === productId);
       if (item) {
         item.quantity = quantity;
@@ -57,7 +62,6 @@ const store = createStore({
       }
     },
     removeFromCart(state, productId) {
-      if (!state.cart.items) state.cart.items = [];
       state.cart.items = state.cart.items.filter(
         (item) => item.id !== productId
       );
@@ -105,15 +109,23 @@ const store = createStore({
         JSON.stringify(state.comparisonList)
       );
     },
+    SET_COMPARISON_LIST(state, list) {
+      state.comparisonList = Array.isArray(list) ? list : [];
+      localStorage.setItem(
+        "comparisonList",
+        JSON.stringify(state.comparisonList)
+      );
+    },
+    SET_COMPARISON_LIST_LOADING(state, loading) {
+      state.comparisonListLoading = loading;
+    },
+    setTheme(state, theme) {
+      state.theme = theme;
+      localStorage.setItem("theme", theme);
+    },
   },
 
   actions: {
-    addToComparison({ commit }, product) {
-      commit("addToComparisonList", product);
-    },
-    removeFromComparison({ commit }, productId) {
-      commit("removeFromComparisonList", productId);
-    },
     async login({ commit, dispatch }, credentials) {
       const response = await fetch("https://fakestoreapi.com/auth/login", {
         method: "POST",
@@ -129,9 +141,6 @@ const store = createStore({
       const token = data.token;
       const decodedToken = jwtDecode(token);
 
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(credentials.username));
-
       commit("setToken", token);
       commit("setUser", {
         id: decodedToken.userId,
@@ -146,27 +155,70 @@ const store = createStore({
       commit("setToken", null);
       commit("clearCart");
       commit("setWishlist", []);
+      commit("clearComparisonList");
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       localStorage.removeItem("cart");
       localStorage.removeItem("wishlist");
+      localStorage.removeItem("comparisonList");
+    },
+    async fetchUser({ commit, state }) {
+      if (state.user) {
+        return state.user;
+      }
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        const user = JSON.parse(storedUser);
+        commit("setUser", user);
+        return user;
+      }
+      return null;
     },
     async fetchCart({ commit, state }) {
-      if (state.user) {
-        const storedCart = localStorage.getItem("cart");
-        if (storedCart) {
-          commit("setCart", JSON.parse(storedCart));
-        } else {
-          const response = await fetch(
-            `https://fakestoreapi.com/carts/user/${state.user.id}`
-          );
-          const cart = await response.json();
-          commit("setCart", cart);
+      try {
+        const userId = state.user?.id;
+        if (!userId) {
+          console.error('User ID is not available');
+          return;
         }
+        const response = await fetch(`https://fakestoreapi.com/carts/user/${userId}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch cart");
+        }
+        const cartData = await response.json();
+        // Ensure we're setting an array of items
+        const cartItems = Array.isArray(cartData) ? cartData : [];
+        commit("setCart", { items: cartItems });
+      } catch (error) {
+        console.error("Error fetching cart:", error);
+        commit("setCart", { items: [] });
+      }
+    },
+    async initializeApp({ dispatch }) {
+      await dispatch("checkAuth");
+      await dispatch("fetchCart");
+      await dispatch("initializeTheme");
+    },
+    checkAuth({ commit }) {
+      const token = localStorage.getItem("token");
+      const user = JSON.parse(localStorage.getItem("user"));
+      if (token && user) {
+        commit("setUser", user);
+        commit("setToken", token);
+      }
+    },
+    async fetchProducts({ commit }) {
+      try {
+        const response = await fetch('https://fakestoreapi.com/products');
+        if (!response.ok) throw new Error('Failed to fetch products');
+        const products = await response.json();
+        commit('setProducts', products);
+      } catch (error) {
+        console.error('Error fetching products:', error);
       }
     },
     async fetchWishlist({ commit, state }) {
-      if (state.user) {
+      if (!state.user) {
         const storedWishlist = localStorage.getItem("wishlist");
         if (storedWishlist) {
           commit("setWishlist", JSON.parse(storedWishlist));
@@ -185,7 +237,7 @@ const store = createStore({
     updateSortOrder({ commit }, sortOrder) {
       commit("setSortOrder", sortOrder);
     },
-    addToCart({ commit }, product) {
+    addProductToCart({ commit }, product) {
       commit("addToCart", product);
     },
     updateCartItemQuantity({ commit }, payload) {
@@ -197,42 +249,60 @@ const store = createStore({
     clearCart({ commit }) {
       commit("clearCart");
     },
-    addToWishlist({ commit }, product) {
+    addProductToWishlist({ commit }, product) {
       commit("addToWishlist", product);
     },
     removeFromWishlist({ commit }, productId) {
       commit("removeFromWishlist", productId);
     },
+    addToComparison({ commit }, product) {
+      commit("addToComparison", product);
+    },
+    removeFromComparison({ commit }, productId) {
+      commit("removeFromComparison", productId);
+    },
+    async updateComparisonList({ commit }, list) {
+      commit("SET_COMPARISON_LIST_LOADING", true);
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        commit("SET_COMPARISON_LIST", list);
+      } finally {
+        commit("SET_COMPARISON_LIST_LOADING", false);
+      }
+    },
+    initializeTheme({ commit }) {
+      const savedTheme = localStorage.getItem("theme");
+      if (savedTheme) {
+        commit("setTheme", savedTheme);
+      } else {
+        commit("setTheme", "light");
+      }
+    },
+    toggleTheme({ commit, state }) {
+      const newTheme = state.theme === "light" ? "dark" : "light";
+      commit("setTheme", newTheme);
+    },
   },
 
   getters: {
-    comparisonList(state) {
-      return state.comparisonList; // Return the comparisonList from the state
-    },
-    isAuthenticated(state) {
-      return !!state.user; // Example: return true if a user is present
-    },
-    comparisonList: [], // Initialize as an empty array
-    isAuthenticated: (state) => !!state.token,
-    isLoggedIn: (state) => !!state.user,
+    comparisonList: (state) => state.comparisonList,
+    comparisonListLoading: (state) => state.comparisonListLoading,
+    isAuthenticated: (state) => !!state.user,
     cartItemCount: (state) => {
-      return state.cart && state.cart.items
-        ? state.cart.items.reduce(
-            (total, item) => total + (item.quantity || 0),
-            0
-          )
-        : 0;
+      if (!Array.isArray(state.cart.items)) {
+        console.error('Cart items is not an array:', state.cart.items);
+        return 0;
+      }
+      return state.cart.items.reduce((total, item) => total + (item.quantity || 0), 0);
     },
-    cartTotal: (state) => {
-      return state.cart && state.cart.items
-        ? state.cart.items.reduce(
-            (total, item) => total + (item.price || 0) * (item.quantity || 0),
-            0
-          )
-        : 0;
-    },
-    wishlistItemCount: (state) => state.wishlist.length,
+    cartTotalPrice: (state) =>
+      state.cart.items.reduce(
+        (total, item) => total + item.quantity * item.price,
+        0
+      ),
+    currentTheme: (state) => state.theme,
   },
 });
 
+export { store };
 export default store;

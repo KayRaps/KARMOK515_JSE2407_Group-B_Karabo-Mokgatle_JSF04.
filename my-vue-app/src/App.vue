@@ -16,9 +16,9 @@
   </div>
 </template>
 
-<script setup>
+<script >
 
-
+import { mapGetters } from 'vuex';
 import { ref, onMounted, computed } from 'vue';
 import { useStore } from 'vuex'; // This import is correct
 import Header from './components/Header.vue';
@@ -30,6 +30,12 @@ const cartItemCount = computed(() => store.getters.cartItemCount || 0);
 const comparisonCount = computed(() => store.getters.comparisonList.length);
 const theme = computed(() => store.getters.currentTheme);
 const isDarkTheme = computed(() => store.state.theme === 'dark');
+
+export default {
+  computed: {
+    ...mapGetters(['currentTheme'])
+  }
+}
 
 onMounted(async () => {
   try {

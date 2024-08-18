@@ -15,6 +15,12 @@
             Ratings: {{ product.rating.rate }} (Based on
             {{ product.rating.count }} reviews)
           </p>
+          <button @click="addToCart(product)" class="cart-button">
+            Add to Cart
+          </button>
+          <button @click="addToWishlist(product)" class="wishlist-button">
+            Add to Wishlist
+          </button>
           <button @click="goBack" class="back-button">
             Back to Product List
           </button>
@@ -27,43 +33,55 @@
 <script>
 import { ref, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useStore } from "vuex";
 import CardSkeleton from "./CardSkeleton.vue";
 
 export default {
-name: "ProductDetail",
-components: {
-  CardSkeleton,
-},
-setup() {
-  const route = useRoute();
-  const router = useRouter();
-  const product = ref(null);
-  const loading = ref(true);
+  name: "ProductDetail",
+  components: {
+    CardSkeleton,
+  },
+  setup() {
+    const route = useRoute();
+    const router = useRouter();
+    const store = useStore();
+    const product = ref(null);
+    const loading = ref(true);
 
-  const fetchProduct = async () => {
-    const id = route.params.id;
-    try {
-      const response = await fetch(`https://fakestoreapi.com/products/${id}`);
-      product.value = await response.json();
-    } catch (error) {
-      console.error(error);
-    } finally {
-      loading.value = false;
-    }
-  };
+    const fetchProduct = async () => {
+      const id = route.params.id;
+      try {
+        const response = await fetch(`https://fakestoreapi.com/products/${id}`);
+        product.value = await response.json();
+      } catch (error) {
+        console.error(error);
+      } finally {
+        loading.value = false;
+      }
+    };
 
-  const goBack = () => {
-    router.push({ path: "/", query: route.query });
-  };
+    const addToCart = (product) => {
+      store.dispatch("addProductToCart", product);
+    };
 
-  onMounted(fetchProduct);
+    const addToWishlist = (product) => {
+      store.dispatch("addProductToWishlist", product);
+    };
 
-  return {
-    product,
-    loading,
-    goBack,
-  };
-},
+    const goBack = () => {
+      router.push({ path: "/", query: route.query });
+    };
+
+    onMounted(fetchProduct);
+
+    return {
+      product,
+      loading,
+      addToCart,
+      addToWishlist,
+      goBack,
+    };
+  },
 };
 </script>
 
@@ -104,15 +122,33 @@ h2 {
 p {
   margin-bottom: 0.5rem;
 }
+.cart-button,
+.wishlist-button,
 .back-button {
   margin-top: 1rem;
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 4px;
-  background-color: #007bff;
-  color: white;
   cursor: pointer;
   font-size: 1rem;
+}
+.cart-button {
+  background-color: #28a745;
+  color: white;
+}
+.cart-button:hover {
+  background-color: #218838;
+}
+.wishlist-button {
+  background-color: #ffc107;
+  color: white;
+}
+.wishlist-button:hover {
+  background-color: #e0a800;
+}
+.back-button {
+  background-color: #007bff;
+  color: white;
 }
 .back-button:hover {
   background-color: #a1c1e2;
