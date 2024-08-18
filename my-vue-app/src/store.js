@@ -174,11 +174,28 @@ const store = createStore({
       }
       return null;
     },
-    async fetchCart({ commit, state }) {
+    async fetchCategories({ commit }) {
       try {
-        const userId = state.user?.id;
+        const response = await fetch('https://fakestoreapi.com/products/categories');
+        if (!response.ok) throw new Error('Failed to fetch categories');
+        const categories = await response.json();
+        return categories;
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        return [];
+      }
+    },
+    async fetchCart({ commit, state }) {
+      if (!state.user) {
+        console.log('User is not logged in');
+        commit("setCart", { items: [] });
+        return;
+      }
+      try {
+        const userId = state.user.id;
         if (!userId) {
           console.error('User ID is not available');
+          commit("setCart", { items: [] });
           return;
         }
         const response = await fetch(`https://fakestoreapi.com/carts/user/${userId}`);
@@ -186,7 +203,6 @@ const store = createStore({
           throw new Error("Failed to fetch cart");
         }
         const cartData = await response.json();
-        // Ensure we're setting an array of items
         const cartItems = Array.isArray(cartData) ? cartData : [];
         commit("setCart", { items: cartItems });
       } catch (error) {
