@@ -44,9 +44,7 @@ const store = createStore({
       state.sortOrder = sortOrder;
     },
     addToCart(state, product) {
-      const existingItem = state.cart.items.find(
-        (item) => item.id === product.id
-      );
+      const existingItem = state.cart.items.find(item => item.id === product.id);
       if (existingItem) {
         existingItem.quantity++;
       } else {
@@ -72,7 +70,7 @@ const store = createStore({
       localStorage.setItem("cart", JSON.stringify(state.cart));
     },
     addToWishlist(state, product) {
-      if (!state.wishlist.some((item) => item.id === product.id)) {
+      if (!state.wishlist.some(item => item.id === product.id)) {
         state.wishlist.push(product);
         localStorage.setItem("wishlist", JSON.stringify(state.wishlist));
       }
@@ -82,17 +80,12 @@ const store = createStore({
       localStorage.setItem("wishlist", JSON.stringify(state.wishlist));
     },
     addToComparison(state, product) {
-      if (
-        state.comparisonList.length < 3 &&
-        !state.comparisonList.some((item) => item.id === product.id)
-      ) {
+      if (state.comparisonList.length < 3 && !state.comparisonList.some(item => item.id === product.id)) {
         state.comparisonList.push(product);
-        localStorage.setItem(
-          "comparisonList",
-          JSON.stringify(state.comparisonList)
-        );
+        localStorage.setItem("comparisonList", JSON.stringify(state.comparisonList));
       }
     },
+  },
     removeFromComparison(state, productId) {
       state.comparisonList = state.comparisonList.filter(
         (item) => item.id !== productId
@@ -254,7 +247,7 @@ const store = createStore({
       commit("setSortOrder", sortOrder);
     },
     addProductToCart({ commit }, product) {
-      commit("addToCart", product);
+      commit('addToCart', product);
     },
     updateCartItemQuantity({ commit }, payload) {
       commit("updateCartItemQuantity", payload);
@@ -266,13 +259,13 @@ const store = createStore({
       commit("clearCart");
     },
     addProductToWishlist({ commit }, product) {
-      commit("addToWishlist", product);
+      commit('addToWishlist', product);
     },
     removeFromWishlist({ commit }, productId) {
       commit("removeFromWishlist", productId);
     },
     addToComparison({ commit }, product) {
-      commit("addToComparison", product);
+      commit('addToComparison', product);
     },
     removeFromComparison({ commit }, productId) {
       commit("removeFromComparison", productId);
@@ -305,12 +298,15 @@ const store = createStore({
     comparisonListLoading: (state) => state.comparisonListLoading,
     isAuthenticated: (state) => !!state.user,
     cartItemCount: (state) => {
-      if (!Array.isArray(state.cart.items)) {
-        console.error('Cart items is not an array:', state.cart.items);
-        return 0;
-      }
       return state.cart.items.reduce((total, item) => total + (item.quantity || 0), 0);
     },
+    wishlistItemCount: (state) => {
+      return state.wishlist.length;
+    },
+    comparisonCount: (state) => {
+      return state.comparisonList.length;
+    },
+  },
     cartTotalPrice: (state) =>
       state.cart.items.reduce(
         (total, item) => total + item.quantity * item.price,
