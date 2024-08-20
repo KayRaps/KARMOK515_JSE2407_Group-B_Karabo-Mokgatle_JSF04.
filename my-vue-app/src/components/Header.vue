@@ -137,19 +137,14 @@
         </div>
       </div>
     </nav>
-    <!-- Cart and Comparison Counts -->
-    <div class="flex justify-between items-center p-4 bg-gray-100">
-      <div>Cart Items: {{ cartItemCount }}</div>
-      <div>Comparison Items: {{ comparisonCount }}</div>
-      <ThemeToggle />
-    </div>
+    <ThemeToggle />
   </header>
 </template>
 
-<script>
-import { ref, computed } from 'vue';
-import { useStore } from 'vuex';
-import { useRouter } from 'vue-router';
+<script setup>
+import { ref, computed } from "vue";
+import { useStore } from "vuex";
+import { useRouter } from "vue-router";
 import ThemeToggle from './ThemeToggle.vue';
 
 const store = useStore();
@@ -171,7 +166,3 @@ const cartItemCount = computed(() => store.getters.cartItemCount);
 const wishlistItemCount = computed(() => store.getters.wishlistItemCount);
 const comparisonCount = computed(() => store.getters.comparisonList.length);
 </script>
-
-<style scoped>
-/* Add any additional styles you want to maintain */
-</style>
