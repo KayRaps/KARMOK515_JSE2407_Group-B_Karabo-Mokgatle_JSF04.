@@ -80,8 +80,8 @@
   </div>
 </template>
 
-<script>
-import { defineComponent, ref, onMounted, watch, computed } from "vue";
+<script setup>
+import { ref, onMounted, watch, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
 import ProductSkeleton from "./ProductSkeleton.vue";
@@ -89,137 +89,109 @@ import Filter from "./Filter.vue";
 import Sort from "./Sort.vue";
 import { filterProducts, fetchCategories } from "../productUtils";
 
-export default defineComponent({
-  components: {
-    ProductSkeleton,
-    Filter,
-    Sort
-  },
-  setup() {
-    const store = useStore();
-    const route = useRoute();
-    const router = useRouter();
+const store = useStore();
+const route = useRoute();
+const router = useRouter();
 
-    const loading = ref(true);
-    const products = ref([]);
-    const categories = ref([]);
-    const selectedCategory = ref(route.query.category || "");
-    const sortOrder = ref(route.query.sort || "");
+const comparisonList = computed(() => store.state.comparisonList);
+const comparisonListLoading = computed(() => store.state.comparisonListLoading);
 
-    const filteredProducts = computed(() => {
-      return filterProducts(
-        products.value,
-        selectedCategory.value,
-        sortOrder.value
-      );
-    });
+const loading = ref(true);
+const products = ref([]);
+const categories = ref([]);
+const selectedCategory = ref(route.query.category || "");
+const sortOrder = ref(route.query.sort || "");
 
-    const isLoggedIn = computed(() => store.getters.isAuthenticated);
-
-    const comparisonList = computed(() => store.state.comparisonList);
-    const comparisonListLoading = computed(() => store.state.comparisonListLoading);
-
-    const addToCart = (product) => {
-      store.dispatch("addToCart", product);
-    };
-
-    const addToWishlist = (product) => {
-      store.dispatch("addToWishlist", product);
-    };
-
-    const toggleComparison = (product) => {
-      if (comparisonListLoading.value) return;
-
-      let newList;
-      if (isInComparisonList(product)) {
-        newList = comparisonList.value.filter((item) => item.id !== product.id);
-      } else {
-        if (comparisonList.value.length >= 3) {
-          alert("You can only compare up to 3 products.");
-          return;
-        }
-        newList = [...comparisonList.value, product];
-      }
-      store.dispatch("updateComparisonList", newList);
-    };
-
-    const isInComparisonList = (product) => {
-      return (
-        Array.isArray(comparisonList.value) &&
-        comparisonList.value.some((item) => item.id === product.id)
-      );
-    };
-
-    const fetchProducts = async () => {
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate loading
-        const response = await fetch("https://fakestoreapi.com/products");
-        const data = await response.json();
-        products.value = data;
-      } catch (error) {
-        console.error(error);
-      } finally {
-        loading.value = false;
-      }
-    };
-
-    const fetchCategoriesData = async () => {
-      categories.value = await fetchCategories();
-    };
-
-    const handleCategoryChange = (newCategory) => {
-      selectedCategory.value = newCategory;
-      const newQuery = { ...route.query, category: newCategory };
-      if (!newCategory) {
-        delete newQuery.category;
-      }
-      router.push({ query: newQuery });
-    };
-
-    const handleSortChange = (newSort) => {
-      sortOrder.value = newSort;
-      const newQuery = { ...route.query, sort: newSort };
-      if (!newSort) {
-        delete newQuery.sort;
-      }
-      router.push({ query: newQuery });
-    };
-
-    onMounted(async () => {
-      await fetchCategoriesData();
-      await fetchProducts();
-    });
-
-    watch(
-      () => route.query,
-      (newQuery) => {
-        selectedCategory.value = newQuery.category || "";
-        sortOrder.value = newQuery.sort || "";
-      },
-      { immediate: true }
-    );
-
-    return {
-      loading,
-      products,
-      categories,
-      selectedCategory,
-      sortOrder,
-      filteredProducts,
-      isLoggedIn,
-      comparisonList,
-      comparisonListLoading,
-      addToCart,
-      addToWishlist,
-      toggleComparison,
-      isInComparisonList,
-      handleCategoryChange,
-      handleSortChange
-    };
-  }
+const filteredProducts = computed(() => {
+  return filterProducts(
+    products.value,
+    selectedCategory.value,
+    sortOrder.value
+  );
 });
-</script>
 
+const isLoggedIn = computed(() => store.getters.isAuthenticated);
+
+const addToCart = (product) => {
+  store.dispatch("addToCart", product);
+};
+
+const addToWishlist = (product) => {
+  store.dispatch("addToWishlist", product);
+};
+
+const toggleComparison = (product) => {
+  if (comparisonListLoading.value) return;
+
+  let newList;
+  if (isInComparisonList(product)) {
+    newList = comparisonList.value.filter((item) => item.id !== product.id);
+  } else {
+    if (comparisonList.value.length >= 3) {
+      alert("You can only compare up to 3 products.");
+      return;
+    }
+    newList = [...comparisonList.value, product];
+  }
+  store.dispatch("updateComparisonList", newList);
+};
+
+const isInComparisonList = (product) => {
+  return (
+    Array.isArray(comparisonList.value) &&
+    comparisonList.value.some((item) => item.id === product.id)
+  );
+};
+
+const fetchProducts = async () => {
+  try {
+    await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate loading
+    const response = await fetch("https://fakestoreapi.com/products");
+    const data = await response.json();
+    products.value = data;
+  } catch (error) {
+    console.error(error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const fetchCategoriesData = async () => {
+  categories.value = await fetchCategories();
+};
+
+const handleCategoryChange = (newCategory) => {
+  selectedCategory.value = newCategory;
+  const newQuery = { ...route.query, category: newCategory };
+  if (!newCategory) {
+    delete newQuery.category;
+  }
+  router.push({ query: newQuery });
+};
+
+const handleSortChange = (newSort) => {
+  sortOrder.value = newSort;
+  const newQuery = { ...route.query, sort: newSort };
+  if (!newSort) {
+    delete newQuery.sort;
+  }
+  router.push({ query: newQuery });
+};
+
+onMounted(async () => {
+  await fetchCategoriesData();
+  await fetchProducts();
+});
+
+watch(
+  () => route.query,
+  (newQuery) => {
+    selectedCategory.value = newQuery.category || "";
+    sortOrder.value = newQuery.sort || "";
+  },
+  { immediate: true }
+);
+</script>
 
 <style scoped>
 .container {
